@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from typing import Any
+from typing import Any, Dict, List
 load_dotenv()
 
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -10,10 +10,11 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_community.vectorstores import Pinecone as PineconeLangChain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from pinecone import Pinecone
 from langchain import hub
 from langchain_core.runnables import RunnablePassthrough
-from consts import INDEX_NAME
+INDEX_NAME="docs-index"
 
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_google_genai import GoogleGenerativeAI
@@ -28,7 +29,7 @@ def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 
-def run_llm(query: str) -> Any:
+def run_llm(query: str, chat_history: List[Dict[str, Any]] = []):
     # chat = ChatOpenAI(verbose=True, temperature=0)
     # embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
@@ -42,28 +43,38 @@ def run_llm(query: str) -> Any:
     # retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
 
     template = """Използвайте само следните части от контекста, за да отговорите на въпроса в края.
-                Ако не знаете отговора, кажете само, "не мога да отговоря на този въпрос" и 
-                че може да се свържете със наш консултант който ще Ви съдейства, не се опитвайте да измисляте отговор.
-                Използвайте максимум три изречения и дръжте отговора възможно най-сбит.
-                Винаги казвайте „благодаря че попитахте“ в края на отговора.
+                    Ако не знаете отговора, кажете само, "не мога да отговоря на този въпрос" и 
+                    че може да се свържете със наш консултант който ще Ви съдейства, не се опитвайте да измисляте отговор.
+                    Използвайте максимум три изречения и дръжте отговора възможно най-сбит.
+                    Винаги казвайте „благодаря че попитахте“ в края на отговора.
 
-        <context>
-        {context}
-        </context>
+            <context>
+            {context}
+            </context>
 
-        Question: {input}
-        """
+            <chat_history>
+            {chat_history}
+            </chat_history>
+
+            Question: {input}
+            """
 
     # Method 1
     custom_rag_prompt = PromptTemplate.from_template(template)
 
     stuff_documents_chain = create_stuff_documents_chain(chat, custom_rag_prompt)
 
-    retrival_chain = create_retrieval_chain(
-        retriever=vectorstore.as_retriever(), combine_docs_chain=stuff_documents_chain
+    rephrase_prompt = hub.pull("langchain-ai/chat-langchain-rephrase")
+
+    history_aware_retriever = create_history_aware_retriever(
+        llm=chat, retriever=vectorstore.as_retriever(), prompt=rephrase_prompt
     )
 
-    result = retrival_chain.invoke(input={"input": query})
+    retrival_chain = create_retrieval_chain(
+        retriever=history_aware_retriever, combine_docs_chain=stuff_documents_chain
+    )
+
+    result = retrival_chain.invoke(input={"input": query, "chat_history": chat_history})
 
     # Formatting result, so it complies with Streamlit
     new_result = {

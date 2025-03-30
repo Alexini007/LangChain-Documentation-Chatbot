@@ -36,18 +36,28 @@ def ingest_docs():
     # INGESTING TXT FILES INTO VECTORSTORE
 
     print('Ingesting')
-    loader = TextLoader("newbis-docs/file1.txt", encoding='UTF-8')
-    document = loader.load()
-    print("splitting")
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=0, separators=["\n\n", "\n", " ", ""])
-    texts = text_splitter.split_documents(document)
-    print(f"created {len(texts)} chunks")
+    # loader = TextLoader("docs", encoding='UTF-8')
+    directory = "docs"
 
-    print(f"Going to add {len(texts)} to Pinecone")
-    # embeddings = OpenAIEmbeddings()
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
-    PineconeVectorStore.from_documents(texts, embeddings, index_name=INDEX_NAME)
-    print("****** Added to Pinecone vectorstore vectors")
+    # Loop through each file in the directory
+    for filename in os.listdir(directory):
+        if filename.endswith(".txt"):
+            filepath = os.path.join(directory, filename)
+            loader = TextLoader(filepath, encoding='utf-8')
+            # Perform your ingestion process here
+            print(f"Ingesting {filename}")
+            # Process the loaded documents
+            document = loader.load()
+            print("splitting")
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100, separators=["\n\n", "\n", " ", ""])
+            texts = text_splitter.split_documents(document)
+            print(f"created {len(texts)} chunks")
+
+            print(f"Going to add {len(texts)} to Pinecone")
+            # embeddings = OpenAIEmbeddings()
+            embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+            PineconeVectorStore.from_documents(texts, embeddings, index_name=INDEX_NAME)
+            print("****** Added to Pinecone vectorstore vectors")
 
 
 if __name__ == "__main__":

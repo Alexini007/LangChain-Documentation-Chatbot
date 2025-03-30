@@ -1,1 +1,2 @@
-INDEX_NAME="gemini-newbis-docs-index"
+INDEX_NAME="docs-index"
+## Name of the vector database in Pinecone
