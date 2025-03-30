@@ -6,11 +6,11 @@
 - **Natural Language Processing**: LangChain facilitates the creation of complex workflows by chaining together different LLM related operations
 - **Customizable Templates**: Usage of custom templates to pass as prompts to LLM.
 
-# Installation
+## Installation
 
-## Clone the repository 
-## Manually add .env file to the project (running the project without the API keys is impossible)
-## Three ways to work with the project (to be updated constantly...)
+- Clone the repository 
+- Manually add .env file to the project (running the project without the API keys is impossible)
+### Three ways to work with the project (to be updated constantly...)
 
 ### Using Global Python Installation
 - Ensure Python 3.11 or later is installed on your system.
